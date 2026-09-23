@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/VaultLab.API/VaultLab.API.csproj" />
+    <Project Path="src/VaultLab.Application/VaultLab.Application.csproj" />
+    <Project Path="src/VaultLab.Domain/VaultLab.Domain.csproj" />
+    <Project Path="src/VaultLab.Infrastructure/VaultLab.Infrastructure.csproj" />
+    <Project Path="src/VaultLab.Worker/VaultLab.Worker.csproj" />
+  </Folder>
+</Solution>
