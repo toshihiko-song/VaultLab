@@ -10,7 +10,10 @@ namespace VaultLab.Infrastructure.Storage
 
             Directory.CreateDirectory(storageDirectory);
 
-            var filePath = Path.Combine(storageDirectory, filename);
+
+            var storageFileName = $"{Guid.NewGuid()}_{filename}";
+
+            var filePath = Path.Combine(storageDirectory, storageFileName);
 
             await using var filestream = new FileStream(
                 filePath,

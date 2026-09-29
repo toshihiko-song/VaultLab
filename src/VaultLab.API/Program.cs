@@ -1,6 +1,8 @@
-using MediatR;
+using Microsoft.EntityFrameworkCore;
 using VaultLab.Infrastructure.Storage;
 using VaultLab.Application.Abstractions;
+using VaultLab.Infrastructure.Persistence;
+using VaultLab.Infrastructure.Persistence.Repositories;
 using VaultLab.Application.Features.Documents.Commands.UploadDocument;
 
 
@@ -8,14 +10,21 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddScoped<IFileStorage, LocalFIleStorage>();
-
 builder.Services.AddMediatR(
     cfg =>
         cfg.RegisterServicesFromAssembly(
             typeof(UploadDocumentCommand).Assembly
         )
 );
+
+builder.Services.AddDbContext<VaultLabDbContext>(options => 
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("VaultLab")
+    )
+);
+
+builder.Services.AddScoped<IFileStorage, LocalFIleStorage>();
+builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 
 
 builder.Services.AddControllers();
@@ -28,6 +37,14 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+}
+
+//Seed Data
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<VaultLabDbContext>();
+
+    await DbInitializer.SeedAsync(context);
 }
 
 app.UseHttpsRedirection();
