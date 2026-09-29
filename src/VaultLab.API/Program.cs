@@ -4,6 +4,7 @@ using VaultLab.Application.Abstractions;
 using VaultLab.Infrastructure.Persistence;
 using VaultLab.Infrastructure.Persistence.Repositories;
 using VaultLab.Application.Features.Documents.Commands.UploadDocument;
+using VaultLab.Infrastructure.Messaging;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,11 +26,17 @@ builder.Services.AddDbContext<VaultLabDbContext>(options =>
 
 builder.Services.AddScoped<IFileStorage, LocalFIleStorage>();
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<IMessagePublisher, RabbitMqMessagePublisher>();
+
+
+builder.Services.Configure<RabbitMqOptions>(
+    builder.Configuration.GetSection("RabbitMQ"));
 
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
 
 var app = builder.Build();
 

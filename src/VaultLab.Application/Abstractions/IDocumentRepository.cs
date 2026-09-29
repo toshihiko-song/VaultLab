@@ -17,5 +17,10 @@ namespace VaultLab.Application.Abstractions
         Task SaveChangesAsync(
             CancellationToken cancellationToken = default
         );
+
+        Task <IReadOnlyList<Document>> GetDocumentsByUserId(
+            Guid userId,
+            CancellationToken cancellationToken
+        );
     }
 }

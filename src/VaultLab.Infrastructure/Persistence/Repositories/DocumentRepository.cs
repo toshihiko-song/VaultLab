@@ -21,6 +21,14 @@ namespace VaultLab.Infrastructure.Persistence.Repositories
                 );
         }
 
+        public async Task<IReadOnlyList<Document>> GetDocumentsByUserId(Guid userId, CancellationToken cancellationToken)
+        {
+            return await dbContext.Documents
+                .Where(x => x.UserId == userId)
+                .OrderByDescending(x => x.CreatedAt)
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             await dbContext.SaveChangesAsync(cancellationToken);

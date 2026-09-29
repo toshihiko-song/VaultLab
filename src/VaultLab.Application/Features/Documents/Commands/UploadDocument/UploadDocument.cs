@@ -1,6 +1,7 @@
 using MediatR;
 using VaultLab.Domain.Entities;
 using VaultLab.Application.Abstractions;
+using VaultLab.Application.Contracts.Messaging;
 
 namespace VaultLab.Application.Features.Documents.Commands.UploadDocument
 {
@@ -12,7 +13,7 @@ namespace VaultLab.Application.Features.Documents.Commands.UploadDocument
         Stream Content
     ): IRequest<Guid>;
 
-    public sealed class UploadDocumentHandler(IDocumentRepository documentRepository, IFileStorage fileStorage) : IRequestHandler<UploadDocumentCommand, Guid>
+    public sealed class UploadDocumentHandler(IDocumentRepository documentRepository, IFileStorage fileStorage, IMessagePublisher messagePublisher) : IRequestHandler<UploadDocumentCommand, Guid>
     {
 
         public async Task<Guid> Handle(UploadDocumentCommand request, CancellationToken cancellationToken)
@@ -37,6 +38,10 @@ namespace VaultLab.Application.Features.Documents.Commands.UploadDocument
             );
 
             await documentRepository.SaveChangesAsync(cancellationToken);
+
+
+            await messagePublisher.PublishMessage(new DocumentUploadMessage(document.Id, document.UserId), cancellationToken);
+
 
             return document.Id;
         }

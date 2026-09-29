@@ -1,17 +1,19 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using VaultLab.Application.Features.Documents.Commands.UploadDocument;
+using VaultLab.Application.Features.Documents.Queries.GetUserDocuments;
+using VaultLab.Domain.Entities;
 
 namespace VaultLab.API.Controllers
 {
     [ApiController]
     [Route("api/documents")]
-    public class DocumentsController(ISender sender): ControllerBase
+    public class DocumentsController(ISender sender) : ControllerBase
     {
         [HttpPost]
         public async Task<IActionResult> Upload(IFormFile file, CancellationToken cancellationToken)
         {
-            if(file.Length == 0)
+            if (file.Length == 0)
                 return BadRequest("File is empty.");
 
             using var stream = file.OpenReadStream();
@@ -32,6 +34,15 @@ namespace VaultLab.API.Controllers
 
             return Ok(documentId);
         }
-        
+
+        [HttpGet("users/{userId}")]
+        public async Task<ActionResult<IReadOnlyList<Document>>> GetUserDocuments(Guid userId, CancellationToken cancellationToken)
+        {
+            var query = new GetUserDocumentsQuery(userId);
+
+            var documents = await sender.Send(query, cancellationToken);
+
+            return Ok(documents);
+        }
     }
 }
