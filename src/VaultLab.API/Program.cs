@@ -6,6 +6,10 @@ using VaultLab.Infrastructure.Persistence.Repositories;
 using VaultLab.Application.Features.Documents.Commands.UploadDocument;
 using VaultLab.Infrastructure.Messaging;
 
+if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+{
+    DotNetEnv.Env.Load("../../.env");
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,13 +28,22 @@ builder.Services.AddDbContext<VaultLabDbContext>(options =>
     )
 );
 
+//RabbitMQ
+builder.Services.AddSingleton<RabbitMqConnection>();
+builder.Services.AddSingleton<RabbitMqInitializer>();
+//
 builder.Services.AddScoped<IFileStorage, LocalFIleStorage>();
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<IMessagePublisher, RabbitMqMessagePublisher>();
 
 
 builder.Services.Configure<RabbitMqOptions>(
-    builder.Configuration.GetSection("RabbitMQ"));
+    builder.Configuration.GetSection("RabbitMQ")
+);
+
+builder.Services.Configure<RabbitMqQueueOptions>(
+    builder.Configuration.GetSection("RabbitMqQueues")
+);
 
 
 builder.Services.AddControllers();
@@ -53,6 +66,14 @@ using (var scope = app.Services.CreateScope())
 
     await DbInitializer.SeedAsync(context);
 }
+
+
+// Initialize RabbitMq
+var rabbitMqInitializer = app.Services.GetRequiredService<RabbitMqInitializer>();
+
+await rabbitMqInitializer.InitializeAsync();
+
+//
 
 app.UseHttpsRedirection();
 

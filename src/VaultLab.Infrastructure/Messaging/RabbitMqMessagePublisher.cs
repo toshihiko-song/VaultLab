@@ -8,23 +8,18 @@ namespace VaultLab.Infrastructure.Messaging
 {
     public class RabbitMqMessagePublisher : IMessagePublisher
     {
-        private readonly ConnectionFactory connectionFactory;
+        private readonly RabbitMqConnection rabbitMqConnection;
+        private readonly IOptions<RabbitMqQueueOptions> queueOptions;
 
-        public RabbitMqMessagePublisher(IOptions<RabbitMqOptions> options)
+        public RabbitMqMessagePublisher(RabbitMqConnection rabbitMqConnection, IOptions<RabbitMqQueueOptions> queueOptions)
         {
-            var settings = options.Value;
-
-            connectionFactory = new ConnectionFactory
-            {
-                HostName = settings.HostName,
-                UserName = settings.UserName,
-                Password = settings.Password
-            };
+            this.rabbitMqConnection = rabbitMqConnection;
+            this.queueOptions = queueOptions;
         }
         public async Task PublishMessage<T>(T message, CancellationToken cancellationToken = default)
         {
             await using var connection =
-                await connectionFactory.CreateConnectionAsync(cancellationToken);
+                await rabbitMqConnection.GetConnectionAsync(cancellationToken);
 
             await using var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
 
@@ -39,7 +34,7 @@ namespace VaultLab.Infrastructure.Messaging
 
             await channel.BasicPublishAsync(
                 exchange: string.Empty,
-                routingKey: "document-processing",
+                routingKey: queueOptions.Value.DocumentProcessing,
                 mandatory:   true,
                 basicProperties: properties,
                 body: body,
