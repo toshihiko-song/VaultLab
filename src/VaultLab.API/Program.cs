@@ -45,6 +45,9 @@ builder.Services.Configure<RabbitMqQueueOptions>(
     builder.Configuration.GetSection("RabbitMqQueues")
 );
 
+builder.Services.Configure<RabbitMqExchangeOptions>(
+    builder.Configuration.GetSection("RabbitMqExchanges")
+);
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

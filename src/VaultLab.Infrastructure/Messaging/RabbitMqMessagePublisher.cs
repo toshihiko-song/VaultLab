@@ -9,12 +9,12 @@ namespace VaultLab.Infrastructure.Messaging
     public class RabbitMqMessagePublisher : IMessagePublisher
     {
         private readonly RabbitMqConnection rabbitMqConnection;
-        private readonly IOptions<RabbitMqQueueOptions> queueOptions;
+        private readonly IOptions<RabbitMqExchangeOptions> exchangeOptions;
 
-        public RabbitMqMessagePublisher(RabbitMqConnection rabbitMqConnection, IOptions<RabbitMqQueueOptions> queueOptions)
+        public RabbitMqMessagePublisher(RabbitMqConnection rabbitMqConnection, IOptions<RabbitMqExchangeOptions> exchangeOptions)
         {
             this.rabbitMqConnection = rabbitMqConnection;
-            this.queueOptions = queueOptions;
+            this.exchangeOptions = exchangeOptions;
         }
         public async Task PublishMessage<T>(T message, CancellationToken cancellationToken = default)
         {
@@ -33,8 +33,8 @@ namespace VaultLab.Infrastructure.Messaging
             };
 
             await channel.BasicPublishAsync(
-                exchange: string.Empty,
-                routingKey: queueOptions.Value.DocumentProcessing,
+                exchange: exchangeOptions.Value.Documents,
+                routingKey: RabbitMqRoutingKeys.DocumentUploaded,
                 mandatory:   true,
                 basicProperties: properties,
                 body: body,
