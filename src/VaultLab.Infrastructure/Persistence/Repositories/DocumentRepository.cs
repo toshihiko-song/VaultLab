@@ -11,6 +11,8 @@ namespace VaultLab.Infrastructure.Persistence.Repositories
             await dbContext.Documents.AddAsync(document, cancellationToken);
         }
 
+
+
         public async Task<Document?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             return await dbContext.Documents
@@ -32,6 +34,11 @@ namespace VaultLab.Infrastructure.Persistence.Repositories
         public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task AddChunkAsync(IEnumerable<DocumentChunk> chunks, CancellationToken cancellationToken = default)
+        {
+            await dbContext.DocumentChunks.AddRangeAsync(chunks, cancellationToken);
         }
     }
 }

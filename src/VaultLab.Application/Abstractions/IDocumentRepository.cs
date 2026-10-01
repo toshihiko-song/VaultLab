@@ -22,5 +22,10 @@ namespace VaultLab.Application.Abstractions
             Guid userId,
             CancellationToken cancellationToken
         );
+
+        Task AddChunkAsync(
+            IEnumerable<DocumentChunk> chunks,
+            CancellationToken cancellationToken = default
+        );
     }
 }

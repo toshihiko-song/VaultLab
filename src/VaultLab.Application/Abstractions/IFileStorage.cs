@@ -7,5 +7,11 @@ namespace VaultLab.Application.Abstractions
             string filename,
             CancellationToken cancellationToken = default
         );
+
+
+        Task<Stream> OpenReadAsync(
+            string storagePath,
+            CancellationToken cancellationToken = default
+        );
     }
 }

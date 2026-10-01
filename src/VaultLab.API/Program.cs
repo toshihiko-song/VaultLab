@@ -22,7 +22,7 @@ builder.Services.AddMediatR(
         )
 );
 
-builder.Services.AddDbContext<VaultLabDbContext>(options => 
+builder.Services.AddDbContext<VaultLabDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("VaultLab")
     )

@@ -1,3 +1,5 @@
+
+
 using VaultLab.Application.Abstractions;
 
 namespace VaultLab.Infrastructure.Storage
@@ -25,6 +27,18 @@ namespace VaultLab.Infrastructure.Storage
             await content.CopyToAsync(filestream, cancellationToken);
 
             return filePath;
+        }
+
+        public Task<Stream> OpenReadAsync(string storagePath, CancellationToken cancellationToken = default)
+        {
+            Stream stream = new FileStream(
+                storagePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read
+            );
+
+            return Task.FromResult(stream);
         }
     }
 }
