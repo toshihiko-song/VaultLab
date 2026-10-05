@@ -35,7 +35,9 @@ builder.Services.AddDbContext<VaultLabDbContext>(options =>
 
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<IDocumentTextExtractor, PlainTextDocumentTextExtractor>();
+builder.Services.AddScoped<IDocumentTextExtractor, PdfDocumentTextExtractor>();
 builder.Services.AddScoped<IFileStorage, LocalFIleStorage>();
+builder.Services.AddScoped<IDocumentTextExtractorFactory, DocumentTextExtractorFactory>();
 builder.Services.AddSingleton<IDocumentChunker, SimpleDocumentChunker>();
 
 

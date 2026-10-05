@@ -50,8 +50,8 @@ namespace VaultLab.Worker.Messaging
                 var documentRepository =
                     scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
 
-                var textExtractor =
-                    scope.ServiceProvider.GetRequiredService<IDocumentTextExtractor>();
+                var textExtractorFactory =
+                    scope.ServiceProvider.GetRequiredService<IDocumentTextExtractorFactory>();
 
 
 
@@ -88,6 +88,10 @@ namespace VaultLab.Worker.Messaging
 
                     //Open Record File
                     await using var fileStream = await fileStorage.OpenReadAsync(document.StoragePath, cancellationToken);
+
+                    //get the right extractor 
+
+                    var textExtractor = textExtractorFactory.Create(document.ContentType);
 
                     //Extract the text;
                     var text = await textExtractor.ExtractAsync(fileStream, document.ContentType, cancellationToken);
