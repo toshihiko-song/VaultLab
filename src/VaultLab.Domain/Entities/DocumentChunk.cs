@@ -10,7 +10,8 @@ namespace VaultLab.Domain.Entities
         public DocumentChunk(
             Guid documentId,
             string content,
-            int chunkIndex)
+            int chunkIndex
+            )
         {
             if(documentId == Guid.Empty)
                 throw new ArgumentException("Document Id is required", nameof(documentId));
@@ -29,5 +30,6 @@ namespace VaultLab.Domain.Entities
             Content = content;
             ChunkIndex = chunkIndex;
         }
+
     }
 }

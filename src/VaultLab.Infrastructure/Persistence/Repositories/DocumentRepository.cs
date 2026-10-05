@@ -1,6 +1,7 @@
 using VaultLab.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using VaultLab.Application.Abstractions;
+using VaultLab.Infrastructure.Persistence.Models;
 
 namespace VaultLab.Infrastructure.Persistence.Repositories
 {
@@ -16,7 +17,6 @@ namespace VaultLab.Infrastructure.Persistence.Repositories
         public async Task<Document?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             return await dbContext.Documents
-                .Include(x => x.Chunks)
                 .FirstOrDefaultAsync(
                     x => x.Id == id,
                     cancellationToken
@@ -36,9 +36,34 @@ namespace VaultLab.Infrastructure.Persistence.Repositories
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task AddChunkAsync(IEnumerable<DocumentChunk> chunks, CancellationToken cancellationToken = default)
+        public async Task AddChunkAsync(
+            IEnumerable<DocumentChunk> chunks,
+            IReadOnlyList<float[]> embeddings,
+            CancellationToken cancellationToken = default)
         {
-            await dbContext.DocumentChunks.AddRangeAsync(chunks, cancellationToken);
+
+            var chunkList = chunks.ToList();
+
+            if (chunkList.Count != embeddings.Count)
+                throw new ArgumentException(
+                    "The number of chunks must match the number of embeddings.",
+                    nameof(embeddings)
+                );
+
+
+            var models = chunkList
+            .Select((chunk, index) => new DocumentChunkModel
+            {
+                Id = chunk.Id,
+                DocumentId = chunk.DocumentId,
+                Content = chunk.Content,
+                ChunkIndex = chunk.ChunkIndex,
+                Embedding = new Pgvector.Vector(embeddings[index])
+            })
+            .ToList();
+
+            await dbContext.Set<DocumentChunkModel>()
+                .AddRangeAsync(models, cancellationToken);
         }
     }
 }

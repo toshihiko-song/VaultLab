@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using VaultLab.Infrastructure.Messaging;
 using VaultLab.Application.Abstractions;
 using VaultLab.Application.Contracts.Messaging;
+using VaultLab.Infrastructure.Persistence;
 
 namespace VaultLab.Worker.Messaging
 {
@@ -35,6 +36,7 @@ namespace VaultLab.Worker.Messaging
 
             consumer.ReceivedAsync += async (_, eventArgs) =>
             {
+
                 var message = Encoding.UTF8.GetString(eventArgs.Body.ToArray());
 
                 var documentUploaded = JsonSerializer.Deserialize<DocumentUploadMessage>(message);
@@ -44,14 +46,30 @@ namespace VaultLab.Worker.Messaging
 
                 using var scope = scopeFactory.CreateScope();
 
-                var documentRepository = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
-                var textExtractor = scope.ServiceProvider.GetRequiredService<IDocumentTextExtractor>();
-                var fileStorage = scope.ServiceProvider.GetRequiredService<IFileStorage>();
-                var chunker = scope.ServiceProvider.GetRequiredService<IDocumentChunker>();
+
+                var documentRepository =
+                    scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
+
+                var textExtractor =
+                    scope.ServiceProvider.GetRequiredService<IDocumentTextExtractor>();
+
+
+
+                var fileStorage =
+                        scope.ServiceProvider.GetRequiredService<IFileStorage>();
+
+
+                var chunker =
+                    scope.ServiceProvider.GetRequiredService<IDocumentChunker>();
+
+                var embeddingGenerator =
+                    scope.ServiceProvider.GetRequiredService<IEmbeddingGenerator>();
+
 
                 Console.WriteLine($"Received document: {documentUploaded.DocumentId}");
 
                 var document = await documentRepository.GetByIdAsync(documentUploaded.DocumentId, cancellationToken);
+
 
                 if (document is null)
                 {
@@ -87,7 +105,19 @@ namespace VaultLab.Worker.Messaging
                             ))
                         .ToList();
 
-                    await documentRepository.AddChunkAsync(chunks, cancellationToken);
+                    var embeddings = new List<float[]>();
+
+                    foreach (var chunk in chunks)
+                    {
+                        var embedding = await embeddingGenerator.GenerateAsync(
+                            chunk.Content,
+                            cancellationToken
+                        );
+
+                        embeddings.Add(embedding.ToArray());
+                    }
+
+                    await documentRepository.AddChunkAsync(chunks, embeddings, cancellationToken);
 
 
                     document.MarkAsProcessed();

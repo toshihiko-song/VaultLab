@@ -24,7 +24,10 @@ builder.Services.AddMediatR(
 
 builder.Services.AddDbContext<VaultLabDbContext>(options =>
     options.UseNpgsql(
-        builder.Configuration.GetConnectionString("VaultLab")
+        builder.Configuration.GetConnectionString("VaultLab"),
+        npgsqlOptions => {
+            npgsqlOptions.UseVector();
+        } 
     )
 );
 

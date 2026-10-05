@@ -25,6 +25,7 @@ namespace VaultLab.Application.Abstractions
 
         Task AddChunkAsync(
             IEnumerable<DocumentChunk> chunks,
+            IReadOnlyList<float[]> embeddings,
             CancellationToken cancellationToken = default
         );
     }
