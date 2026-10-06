@@ -14,6 +14,11 @@ namespace VaultLab.Infrastructure.Documents
             {
                 "text/plain" => extractors.OfType<PlainTextDocumentTextExtractor>().Single(),
                 "application/pdf" => extractors.OfType<PdfDocumentTextExtractor>().Single(),
+                "text/markdown" => extractors.OfType<MarkdownDocumentExtractor>().Single(),
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document" =>
+                    extractors.OfType<DocxDocumentTextExtractor>().Single(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" =>
+                    extractors.OfType<ExcelDocumentTextExtractor>().Single(),
                 _ => throw new NotSupportedException($"Unsupported document type: {contentType}")
             };
         }
