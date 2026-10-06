@@ -1,8 +1,9 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using VaultLab.Application.Features.Documents.Commands.UploadDocument;
-using VaultLab.Application.Features.Documents.Queries.GetUserDocuments;
 using VaultLab.Domain.Entities;
+using VaultLab.Application.Features.Documents.Commands.UploadDocument;
+using VaultLab.Application.Features.Documents.Queries.AskQuestion;
+using VaultLab.Application.Features.Documents.Queries.GetUserDocuments;
 
 namespace VaultLab.API.Controllers
 {
@@ -43,6 +44,17 @@ namespace VaultLab.API.Controllers
             var documents = await sender.Send(query, cancellationToken);
 
             return Ok(documents);
+        }
+
+        [HttpPost("ask")]
+        public async Task<ActionResult<AskQuestionResponse>> Ask(
+            [FromBody] AskQuestionQuery query,
+            CancellationToken cancellationToken
+        )
+        {
+            var response = await sender.Send(query, cancellationToken);
+
+            return Ok(response);
         }
     }
 }

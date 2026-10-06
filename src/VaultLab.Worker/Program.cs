@@ -1,63 +1,24 @@
-using OpenAI.Embeddings;
+using VaultLab.Infrastructure;
 using VaultLab.Worker.Messaging;
-using VaultLab.Infrastructure.AI;
-using Microsoft.EntityFrameworkCore;
-using VaultLab.Infrastructure.Storage;
-using VaultLab.Application.Abstractions;
-using VaultLab.Infrastructure.Documents;
-using VaultLab.Infrastructure.Messaging;
-using VaultLab.Infrastructure.Persistence;
-using VaultLab.Infrastructure.Persistence.Repositories;
 
 if (Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == "Development")
 {
     DotNetEnv.Env.Load("../../.env");
 }
 
-
 var builder = Host.CreateApplicationBuilder(args);
 
+// Infrastructure
+builder.Services
+    .AddPersistence(builder.Configuration)
+    .AddFileStorage()
+    .AddOpenAI(builder.Configuration)
+    .AddRabbitMq(builder.Configuration)
+    .AddDocumentProcessing();
 
-builder.Services.AddSingleton<RabbitMqConnection>();
-builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMQ"));
-builder.Services.Configure<RabbitMqQueueOptions>(builder.Configuration.GetSection("RabbitMqQueues"));
-builder.Services.Configure<OpenAIOptions>(builder.Configuration.GetSection("OpenAI"));
-
-builder.Services.AddDbContext<VaultLabDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("VaultLab"),
-        npgsqlOptions =>
-        {
-            npgsqlOptions.UseVector();
-        }
-    )
-);
-
-builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
-builder.Services.AddScoped<IDocumentTextExtractor, PlainTextDocumentTextExtractor>();
-builder.Services.AddScoped<IDocumentTextExtractor, PdfDocumentTextExtractor>();
-builder.Services.AddScoped<IDocumentTextExtractor, MarkdownDocumentExtractor>();
-builder.Services.AddScoped<IDocumentTextExtractor, DocxDocumentTextExtractor>();
-builder.Services.AddScoped<IDocumentTextExtractor, ExcelDocumentTextExtractor>();
-
-builder.Services.AddScoped<IFileStorage, LocalFIleStorage>();
-builder.Services.AddScoped<IDocumentTextExtractorFactory, DocumentTextExtractorFactory>();
-builder.Services.AddSingleton<IDocumentChunker, SimpleDocumentChunker>();
-
-
-builder.Services.AddSingleton<EmbeddingClient>(serviceProvider =>
-{
-    var options = serviceProvider
-     .GetRequiredService<Microsoft.Extensions.Options.IOptions<OpenAIOptions>>().Value;
-
-    return new EmbeddingClient(options.EmbeddingModel, options.ApiKey);
-});
-
-builder.Services.AddSingleton<IEmbeddingGenerator, OpenAIEmbeddingGenerator>();
-
+// Worker
 builder.Services.AddSingleton<DocumentProcessingConsumer>();
 builder.Services.AddHostedService<DocumentProcessingWorker>();
-
 
 var host = builder.Build();
 

@@ -2,6 +2,8 @@ using VaultLab.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using VaultLab.Application.Abstractions;
 using VaultLab.Infrastructure.Persistence.Models;
+using Pgvector.EntityFrameworkCore;
+using VaultLab.Application.Features.Documents.Models;
 
 namespace VaultLab.Infrastructure.Persistence.Repositories
 {
@@ -64,6 +66,25 @@ namespace VaultLab.Infrastructure.Persistence.Repositories
 
             await dbContext.Set<DocumentChunkModel>()
                 .AddRangeAsync(models, cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<SimilarChunk>> SearchSimilarChunksAsync(IReadOnlyList<float> embedding, int limit, CancellationToken cancellationToken = default)
+        {
+
+            var vector = new Pgvector.Vector(embedding.ToArray());
+
+
+            return await dbContext.DocumentChunks
+                .Where(x => x.Embedding != null)
+                .OrderBy(x => x.Embedding!.CosineDistance(vector))
+                .Take(limit)
+                .Select(x => new SimilarChunk(
+                    x.DocumentId,
+                    x.Content,
+                    x.ChunkIndex,
+                    1 - x.Embedding!.CosineDistance(vector)
+                ))
+                .ToListAsync(cancellationToken);
         }
     }
 }

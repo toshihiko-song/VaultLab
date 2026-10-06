@@ -1,3 +1,4 @@
+using VaultLab.Application.Features.Documents.Models;
 using VaultLab.Domain.Entities;
 
 namespace VaultLab.Application.Abstractions
@@ -18,7 +19,7 @@ namespace VaultLab.Application.Abstractions
             CancellationToken cancellationToken = default
         );
 
-        Task <IReadOnlyList<Document>> GetDocumentsByUserId(
+        Task<IReadOnlyList<Document>> GetDocumentsByUserId(
             Guid userId,
             CancellationToken cancellationToken
         );
@@ -26,6 +27,12 @@ namespace VaultLab.Application.Abstractions
         Task AddChunkAsync(
             IEnumerable<DocumentChunk> chunks,
             IReadOnlyList<float[]> embeddings,
+            CancellationToken cancellationToken = default
+        );
+
+        Task<IReadOnlyList<SimilarChunk>> SearchSimilarChunksAsync(
+            IReadOnlyList<float> embedding,
+            int limit,
             CancellationToken cancellationToken = default
         );
     }
