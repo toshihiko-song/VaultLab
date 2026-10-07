@@ -1,3 +1,4 @@
+using VaultLab.API.Exceptions;
 using VaultLab.Application;
 using VaultLab.Infrastructure;
 
@@ -16,16 +17,22 @@ builder.Services
     .AddOpenAI(builder.Configuration)
     .AddRabbitMq(builder.Configuration);
 
+
 // API
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
 var app = builder.Build();
+
+app.UseExceptionHandler(options => { });
 
 // Startup tasks
 await app.Services.SeedDatabaseAsync();
 await app.Services.InitializeRabbitMqAsync();
+
 
 // HTTP request pipeline
 if (app.Environment.IsDevelopment())

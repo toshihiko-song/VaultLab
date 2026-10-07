@@ -1,4 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using FluentValidation;
+using MediatR;
+using VaultLab.Application.Behaviors;
 
 namespace VaultLab.Application
 {
@@ -9,6 +12,14 @@ namespace VaultLab.Application
             services.AddMediatR(cfg =>
                 cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly)
             );
+
+            services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+
+            services.AddTransient(
+                typeof(IPipelineBehavior<,>),
+                typeof(ValidationBehavior<,>)
+            );
+
 
             return services;
         }
