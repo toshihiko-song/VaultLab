@@ -27,24 +27,24 @@ namespace VaultLab.Domain.Entities
             long fileSize,
             string storagePath)
         {
-            if(userId == Guid.Empty)
+            if (userId == Guid.Empty)
                 throw new ArgumentException("User Id is required.", nameof(userId));
-            
-            if(string.IsNullOrWhiteSpace(fileName))
+
+            if (string.IsNullOrWhiteSpace(fileName))
                 throw new ArgumentException("File name is required.", nameof(fileName));
 
-            if(string.IsNullOrWhiteSpace(contentType))
+            if (string.IsNullOrWhiteSpace(contentType))
                 throw new ArgumentException("Content type is required.", nameof(contentType));
 
-            if(fileSize <= 0)
+            if (fileSize <= 0)
                 throw new ArgumentOutOfRangeException(
                     nameof(fileSize),
                     "File Size must be greater than zero."
                 );
-            
-            if(string.IsNullOrWhiteSpace(storagePath))
+
+            if (string.IsNullOrWhiteSpace(storagePath))
                 throw new ArgumentException("Storage path is required.", nameof(storagePath));
-            
+
             Id = Guid.NewGuid();
             UserId = userId;
             FileName = fileName;
@@ -58,17 +58,30 @@ namespace VaultLab.Domain.Entities
 
         public void MarkAsProcessing()
         {
+            if (Status == DocumentStatus.Processed)
+                throw new InvalidOperationException(
+                    "Processed documents cannot be processed again."
+                );
+
+            if (Status == DocumentStatus.Failed)
+                throw new InvalidOperationException(
+                    "Failed documents cannot be processed."
+                );
+
             Status = DocumentStatus.Processing;
         }
 
         public void MarkAsProcessed()
         {
-            if(Status != DocumentStatus.Uploaded)
+            if (Status != DocumentStatus.Uploaded &&
+                Status != DocumentStatus.Processing)
+            {
                 throw new InvalidOperationException(
-                    "Document must be in processing before it can be marked as processed"
+                    $"Cannot process a document with status '{Status}'."
                 );
-            
-            Status = DocumentStatus.Proccesed;
+            }
+
+            Status = DocumentStatus.Processed;
         }
 
         public void MarkAsFailed()

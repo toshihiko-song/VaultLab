@@ -66,6 +66,7 @@ namespace VaultLab.Infrastructure
             services.Configure<RabbitMqOptions>(configuration.GetSection("RabbitMQ"));
             services.Configure<RabbitMqQueueOptions>(configuration.GetSection("RabbitMqQueues"));
             services.Configure<RabbitMqExchangeOptions>(configuration.GetSection("RabbitMqExchanges"));
+            services.Configure<RabbitMqRetryOptions>(configuration.GetSection("RabbitMqRetry"));
 
             services.AddSingleton<RabbitMqConnection>();
             services.AddSingleton<RabbitMqInitializer>();

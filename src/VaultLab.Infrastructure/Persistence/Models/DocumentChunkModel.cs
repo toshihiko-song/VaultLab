@@ -6,7 +6,7 @@ namespace VaultLab.Infrastructure.Persistence.Models
     [Table("DocumentChunks")]
     public class DocumentChunkModel
     {
-            public Guid Id { get; set; }
+        public Guid Id { get; set; }
 
         public Guid DocumentId { get; set; }
 

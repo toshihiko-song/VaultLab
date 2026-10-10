@@ -7,30 +7,33 @@ using VaultLab.Infrastructure.Messaging;
 using VaultLab.Application.Abstractions;
 using VaultLab.Application.Contracts.Messaging;
 using VaultLab.Infrastructure.Persistence;
+using RabbitMQ.Client;
 
 namespace VaultLab.Worker.Messaging
 {
     public sealed class DocumentProcessingConsumer(
         RabbitMqConnection rabbitMqConnection,
+        IOptions<RabbitMqExchangeOptions> exchangeOptions,
         IOptions<RabbitMqQueueOptions> queueOptions,
-        IServiceScopeFactory scopeFactory
+        IOptions<RabbitMqRetryOptions> retryOptions,
+        IServiceScopeFactory scopeFactory,
+        ILogger<DocumentProcessingConsumer> logger
         )
     {
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            Console.WriteLine("Starting document processing consumer...");
+            logger.LogInformation("Starting document processing consumer...");
 
             var connection = await rabbitMqConnection.GetConnectionAsync(cancellationToken);
 
-            await using var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
-
-            await channel.QueueDeclareAsync(
-                queue: queueOptions.Value.DocumentProcessing,
-                durable: true,
-                exclusive: false,
-                autoDelete: false,
+            await using var channel = await connection.CreateChannelAsync(
+                new CreateChannelOptions(
+                    publisherConfirmationsEnabled: true,
+                    publisherConfirmationTrackingEnabled: true
+                ),
                 cancellationToken: cancellationToken
             );
+
 
             var consumer = new AsyncEventingBasicConsumer(channel);
 
@@ -66,19 +69,33 @@ namespace VaultLab.Worker.Messaging
                     scope.ServiceProvider.GetRequiredService<IEmbeddingGenerator>();
 
 
-                Console.WriteLine($"Received document: {documentUploaded.DocumentId}");
+                logger.LogInformation("Received document: {DocumentId}", documentUploaded.DocumentId);
 
                 var document = await documentRepository.GetByIdAsync(documentUploaded.DocumentId, cancellationToken);
 
 
                 if (document is null)
                 {
-                    Console.WriteLine($"Document is not found: {documentUploaded.DocumentId}");
+                    logger.LogWarning("Document is not found: {DocumentId}", documentUploaded.DocumentId);
 
                     return;
                 }
 
-                Console.WriteLine($"Processing document: {document.FileName}");
+                //Handle Duplicate Processing
+                if (document.Status == Domain.Enums.DocumentStatus.Processed)
+                {
+                    logger.LogInformation("Document is already processed. Skipping duplicate message: {DocumentId}", document.Id);
+
+
+                    await channel.BasicAckAsync(
+                        eventArgs.DeliveryTag,
+                        multiple: false,
+                        cancellationToken: cancellationToken
+                    );
+                    return;
+                }
+
+                logger.LogInformation("Processing document: {DocumentId}", document.Id);
 
                 try
                 {
@@ -136,12 +153,15 @@ namespace VaultLab.Worker.Messaging
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Document processing failed: {ex.Message}");
+                    logger.LogError(ex, "Document processing failed: {DocumentId}", document.Id);
 
-                    document.MarkAsFailed();
-
-                    await documentRepository.SaveChangesAsync(
-                        cancellationToken);
+                    await HandleFailureAsync(
+                        documentId: document.Id,
+                        documentRepository: documentRepository,
+                        channel: channel,
+                        eventArgs: eventArgs,
+                        cancellationToken: cancellationToken
+                    );
                 }
             };
 
@@ -157,6 +177,75 @@ namespace VaultLab.Worker.Messaging
             );
 
             await Task.Delay(Timeout.Infinite, cancellationToken);
+        }
+
+        public async Task HandleFailureAsync(
+            IChannel channel,
+            BasicDeliverEventArgs eventArgs,
+            IDocumentRepository documentRepository,
+            Guid documentId,
+            CancellationToken cancellationToken
+        )
+        {
+            int retryCount = 0;
+            if (eventArgs.BasicProperties.Headers?.TryGetValue(
+                    "x-retry-count",
+                    out var retryHeader) == true)
+            {
+                retryCount = retryHeader switch
+                {
+                    byte[] bytes => int.Parse(
+                        Encoding.UTF8.GetString(bytes)),
+
+                    int value => value,
+
+                    long value => checked((int)value),
+
+                    _ => throw new InvalidOperationException(
+                        $"Unsupported retry count header type: {retryHeader?.GetType().Name}")
+                };
+            }
+
+            bool isRetriesExhausted = retryCount >= retryOptions.Value.MaxRetries;
+
+            var properties = new BasicProperties
+            {
+                Persistent = true,
+                Headers = new Dictionary<string, object?>
+                {
+                    ["x-retry-count"] = retryCount + 1
+                }
+            };
+
+            var routingKey = isRetriesExhausted
+                ? RabbitMqRoutingKeys.DocumentProcessingDeadLetter
+                : RabbitMqRoutingKeys.DocumentProcessingRetry;
+
+            await channel.BasicPublishAsync(
+                exchange: exchangeOptions.Value.Documents,
+                routingKey: routingKey,
+                mandatory: true,
+                basicProperties: properties,
+                body: eventArgs.Body,
+                cancellationToken: cancellationToken
+            );
+
+            await channel.BasicAckAsync(
+                deliveryTag: eventArgs.DeliveryTag,
+                multiple: false,
+                cancellationToken: cancellationToken
+            );
+
+            //
+            if (isRetriesExhausted)
+            {
+                var document = await documentRepository.GetByIdAsync(documentId, cancellationToken);
+                if (document is not null)
+                {
+                    document.MarkAsFailed();
+                    await documentRepository.SaveChangesAsync(cancellationToken);
+                }
+            }
         }
     }
 }

@@ -8,5 +8,7 @@ namespace VaultLab.Infrastructure.Messaging
     public sealed class RabbitMqQueueOptions
     {
         public string DocumentProcessing { get; set; } = string.Empty;
+        public string DocumentProcessingRetry { get; set; } = string.Empty;
+        public string DocumentProcessingDeadLetter { get; set; } = string.Empty;
     }
 }

@@ -8,5 +8,7 @@ namespace VaultLab.Infrastructure.Messaging
     public static class RabbitMqRoutingKeys
     {
         public const string DocumentUploaded = "document.uploaded";
+        public const string DocumentProcessingRetry = "document.processing.retry";
+        public const string DocumentProcessingDeadLetter = "document.processing.deadletter";
     }
 }

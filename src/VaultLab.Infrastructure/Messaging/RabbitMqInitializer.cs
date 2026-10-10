@@ -7,7 +7,8 @@ namespace VaultLab.Infrastructure.Messaging
     public sealed class RabbitMqInitializer(
         RabbitMqConnection rabbitMqConnection,
         IOptions<RabbitMqQueueOptions> queueOptions,
-        IOptions<RabbitMqExchangeOptions> exchangeOptions
+        IOptions<RabbitMqExchangeOptions> exchangeOptions,
+        IOptions<RabbitMqRetryOptions> retryOptions
     )
     {
         public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -16,35 +17,74 @@ namespace VaultLab.Infrastructure.Messaging
 
             await using var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
 
+            var documentExchange = exchangeOptions.Value.Documents;
+            var queues = queueOptions.Value;
+
             // Document Exchange
             await channel.ExchangeDeclareAsync(
-                exchange: exchangeOptions.Value.Documents,
+                exchange: documentExchange,
                 type: ExchangeType.Direct,
                 durable: true,
                 autoDelete: false,
                 cancellationToken: cancellationToken
             );
 
-            // Document Processing Queue
+
+            // Declare Queues
 
             await channel.QueueDeclareAsync(
-                queue: queueOptions.Value.DocumentProcessing,
+                queue: queues.DocumentProcessing,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
                 cancellationToken: cancellationToken
             );
 
-            //Queue Bindings
+            await channel.QueueDeclareAsync(
+                queue: queues.DocumentProcessingRetry,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: new Dictionary<string, object?>
+                {
+                    { "x-message-ttl", retryOptions.Value.RetryDelayMilliseconds },
+                    { "x-dead-letter-exchange", documentExchange },
+                    { "x-dead-letter-routing-key", RabbitMqRoutingKeys.DocumentUploaded }
+                },
+                cancellationToken: cancellationToken
+            );
 
-            await channel.QueueBindAsync(
-                queue: queueOptions.Value.DocumentProcessing,
-                exchange: exchangeOptions.Value.Documents,
-                routingKey: RabbitMqRoutingKeys.DocumentUploaded,
+            await channel.QueueDeclareAsync(
+                queue: queues.DocumentProcessingDeadLetter,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
                 cancellationToken: cancellationToken
             );
 
 
+            //Queue Bindings
+
+            await channel.QueueBindAsync(
+                queue: queues.DocumentProcessing,
+                exchange: documentExchange,
+                routingKey: RabbitMqRoutingKeys.DocumentUploaded,
+                cancellationToken: cancellationToken
+            );
+
+            await channel.QueueBindAsync(
+                queue: queues.DocumentProcessingRetry,
+                exchange: documentExchange,
+                routingKey: RabbitMqRoutingKeys.DocumentProcessingRetry,
+                cancellationToken: cancellationToken
+            );
+
+            await channel.QueueBindAsync(
+                queue: queues.DocumentProcessingDeadLetter,
+                exchange: documentExchange,
+                routingKey: RabbitMqRoutingKeys.DocumentProcessingDeadLetter,
+                cancellationToken: cancellationToken
+            );
         }
     }
 }

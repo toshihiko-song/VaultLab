@@ -4,7 +4,7 @@ namespace VaultLab.Domain.Enums
     {
         Uploaded,
         Processing,
-        Proccesed,
+        Processed,
         Failed
     }
 }
