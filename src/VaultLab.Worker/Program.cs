@@ -1,19 +1,32 @@
 using VaultLab.Infrastructure;
 using VaultLab.Worker.Messaging;
+using VaultLab.Infrastructure.Configuration;
 
-if (Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == "Development")
-{
-    DotNetEnv.Env.Load("../../.env");
-}
 
 var builder = Host.CreateApplicationBuilder(args);
 
+//Get Secrets
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    var environment = builder.Environment.IsDevelopment()
+        ? "dev"
+        : "prod";
+
+    await builder.Configuration.AddSecretsManagerAsync(
+        "ap-southeast-1",
+        [
+            $"vaultlab/{environment}/database",
+            $"vaultlab/{environment}/rabbitmq",
+            $"vaultlab/{environment}/openai"
+        ]);
+}
+
 // Infrastructure
 builder.Services
-    .AddPersistence(builder.Configuration)
+    .AddPersistence(builder.Configuration, builder.Environment)
     .AddFileStorage()
-    .AddOpenAI(builder.Configuration)
-    .AddRabbitMq(builder.Configuration)
+    .AddOpenAI(builder.Configuration, builder.Environment)
+    .AddRabbitMq(builder.Configuration, builder.Environment)
     .AddDocumentProcessing();
 
 // Worker

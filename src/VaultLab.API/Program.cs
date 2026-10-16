@@ -1,21 +1,36 @@
 using VaultLab.API.Exceptions;
 using VaultLab.Application;
 using VaultLab.Infrastructure;
+using VaultLab.Infrastructure.Configuration;
 
-if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
-{
-    DotNetEnv.Env.Load("../../.env");
-}
+
+
+
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    var environment = builder.Environment.IsDevelopment()
+        ? "dev"
+        : "prod";
+
+    await builder.Configuration.AddSecretsManagerAsync(
+        "ap-southeast-1",
+        [
+            $"vaultlab/{environment}/database",
+            $"vaultlab/{environment}/rabbitmq",
+            $"vaultlab/{environment}/openai"
+        ]);
+}
 
 // Application & Infrastructure
 builder.Services
     .AddApplication()
-    .AddPersistence(builder.Configuration)
+    .AddPersistence(builder.Configuration, builder.Environment)
     .AddFileStorage()
-    .AddOpenAI(builder.Configuration)
-    .AddRabbitMq(builder.Configuration);
+    .AddOpenAI(builder.Configuration, builder.Environment)
+    .AddRabbitMq(builder.Configuration, builder.Environment);
 
 
 // API
@@ -30,8 +45,11 @@ var app = builder.Build();
 app.UseExceptionHandler(options => { });
 
 // Startup tasks
-await app.Services.SeedDatabaseAsync();
-await app.Services.InitializeRabbitMqAsync();
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    await app.Services.SeedDatabaseAsync();
+    await app.Services.InitializeRabbitMqAsync();
+}
 
 
 // HTTP request pipeline
@@ -47,3 +65,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+
+public partial class Program { }

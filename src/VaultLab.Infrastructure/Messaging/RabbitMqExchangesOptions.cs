@@ -5,9 +5,8 @@ using System.Threading.Tasks;
 
 namespace VaultLab.Infrastructure.Messaging
 {
-    public sealed class RabbitMqRetryOptions
+    public sealed class RabbitMqExchangesOptions
     {
-        public int MaxRetries { get; set; }
-        public int RetryDelayMilliseconds { get; set; } = 1000;
+        public string Document { get; set; } = string.Empty;
     }
 }

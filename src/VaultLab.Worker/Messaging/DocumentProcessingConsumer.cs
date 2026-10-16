@@ -13,9 +13,7 @@ namespace VaultLab.Worker.Messaging
 {
     public sealed class DocumentProcessingConsumer(
         RabbitMqConnection rabbitMqConnection,
-        IOptions<RabbitMqExchangeOptions> exchangeOptions,
-        IOptions<RabbitMqQueueOptions> queueOptions,
-        IOptions<RabbitMqRetryOptions> retryOptions,
+        IOptions<RabbitMqOptions> rabbitMqOptions,
         IServiceScopeFactory scopeFactory,
         ILogger<DocumentProcessingConsumer> logger
         )
@@ -165,8 +163,11 @@ namespace VaultLab.Worker.Messaging
                 }
             };
 
+            var rabbitMqQueues = rabbitMqOptions.Value.Queues;
+            var rabbitMqRoutingKeys = rabbitMqOptions.Value.RoutingKeys;
+
             await channel.BasicConsumeAsync(
-                queue: queueOptions.Value.DocumentProcessing,
+                queue: rabbitMqQueues.DocumentProcessing,
                 autoAck: false,
                 consumer: consumer,
                 consumerTag: string.Empty,
@@ -206,7 +207,7 @@ namespace VaultLab.Worker.Messaging
                 };
             }
 
-            bool isRetriesExhausted = retryCount >= retryOptions.Value.MaxRetries;
+            bool isRetriesExhausted = retryCount >= rabbitMqOptions.Value.MaxRetries;
 
             var properties = new BasicProperties
             {
@@ -217,12 +218,16 @@ namespace VaultLab.Worker.Messaging
                 }
             };
 
+            var rabbitMqRoutingKeys = rabbitMqOptions.Value.RoutingKeys;
+            var rabbitMqExchanges = rabbitMqOptions.Value.Exchanges;
+
+
             var routingKey = isRetriesExhausted
-                ? RabbitMqRoutingKeys.DocumentProcessingDeadLetter
-                : RabbitMqRoutingKeys.DocumentProcessingRetry;
+                ? rabbitMqRoutingKeys.DocumentProcessingDeadLetter
+                : rabbitMqRoutingKeys.DocumentProcessingRetry;
 
             await channel.BasicPublishAsync(
-                exchange: exchangeOptions.Value.Documents,
+                exchange: rabbitMqExchanges.Document,
                 routingKey: routingKey,
                 mandatory: true,
                 basicProperties: properties,

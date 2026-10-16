@@ -1,0 +1,14 @@
+services:
+  api:
+    image: ${ECR_REGISTRY}/vaultlab-api:${IMAGE_TAG}
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+
+  worker:
+    image: ${ECR_REGISTRY}/vaultlab-worker:${IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      DOTNET_ENVIRONMENT: Production

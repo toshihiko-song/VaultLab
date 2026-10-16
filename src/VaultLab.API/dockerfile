@@ -1,0 +1,30 @@
+## Build Stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+## Copy solution and project files first to optimize restore caching
+COPY VaultLab.slnx .
+COPY src/VaultLab.Domain/VaultLab.Domain.csproj src/VaultLab.Domain/
+COPY src/VaultLab.Application/VaultLab.Application.csproj src/VaultLab.Application/
+COPY src/VaultLab.Infrastructure/VaultLab.Infrastructure.csproj src/VaultLab.Infrastructure/
+COPY src/VaultLab.API/VaultLab.API.csproj src/VaultLab.API/
+
+
+RUN dotnet restore src/VaultLab.API/VaultLab.API.csproj
+
+COPY src/ src/
+
+## Publish application
+RUN dotnet publish src/VaultLab.API/VaultLab.API.csproj --configuration Release --output /app/publish
+
+## Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_HTTP_PORTS=8080
+
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "VaultLab.API.dll"]

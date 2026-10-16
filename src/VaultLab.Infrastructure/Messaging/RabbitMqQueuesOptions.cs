@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace VaultLab.Infrastructure.Messaging
 {
-    public sealed class RabbitMqQueueOptions
+    public sealed class RabbitMqQueuesOptions
     {
         public string DocumentProcessing { get; set; } = string.Empty;
         public string DocumentProcessingRetry { get; set; } = string.Empty;

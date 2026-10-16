@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace VaultLab.Infrastructure.AI
+namespace VaultLab.Infrastructure.Configuration
 {
-    public class OpenAIOptions
+    public sealed class OpenAISettings
     {
         public string ApiKey { get; set; } = string.Empty;
         public string EmbeddingModel { get; set; } = "text-embedding-3-small";

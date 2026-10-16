@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 
 namespace VaultLab.Infrastructure.Messaging
 {
-    public static class RabbitMqRoutingKeys
+    public sealed class RabbitMqRoutingKeys
     {
-        public const string DocumentUploaded = "document.uploaded";
-        public const string DocumentProcessingRetry = "document.processing.retry";
-        public const string DocumentProcessingDeadLetter = "document.processing.deadletter";
+        public string DocumentUploaded = string.Empty;
+        public string DocumentProcessingRetry = string.Empty;
+        public string DocumentProcessingDeadLetter = string.Empty;
     }
 }

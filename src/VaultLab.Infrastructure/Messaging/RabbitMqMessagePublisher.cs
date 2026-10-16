@@ -9,12 +9,12 @@ namespace VaultLab.Infrastructure.Messaging
     public class RabbitMqMessagePublisher : IMessagePublisher
     {
         private readonly RabbitMqConnection rabbitMqConnection;
-        private readonly IOptions<RabbitMqExchangeOptions> exchangeOptions;
+        private readonly IOptions<RabbitMqOptions> rabbitMqOptions;
 
-        public RabbitMqMessagePublisher(RabbitMqConnection rabbitMqConnection, IOptions<RabbitMqExchangeOptions> exchangeOptions)
+        public RabbitMqMessagePublisher(RabbitMqConnection rabbitMqConnection, IOptions<RabbitMqOptions> rabbitMqOptions)
         {
             this.rabbitMqConnection = rabbitMqConnection;
-            this.exchangeOptions = exchangeOptions;
+            this.rabbitMqOptions = rabbitMqOptions;
         }
         public async Task PublishMessage<T>(T message, CancellationToken cancellationToken = default)
         {
@@ -32,10 +32,13 @@ namespace VaultLab.Infrastructure.Messaging
                 Persistent = true
             };
 
+            var rabbitMqExchanges = rabbitMqOptions.Value.Exchanges;
+            var rabbitMqRoutingKeys = rabbitMqOptions.Value.RoutingKeys;
+
             await channel.BasicPublishAsync(
-                exchange: exchangeOptions.Value.Documents,
-                routingKey: RabbitMqRoutingKeys.DocumentUploaded,
-                mandatory:   true,
+                exchange: rabbitMqExchanges.Document,
+                routingKey: rabbitMqRoutingKeys.DocumentUploaded,
+                mandatory: true,
                 basicProperties: properties,
                 body: body,
                 cancellationToken: cancellationToken

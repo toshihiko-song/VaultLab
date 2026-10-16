@@ -1,13 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
+using VaultLab.Infrastructure.Configuration;
 
 namespace VaultLab.Infrastructure.Messaging
 {
-    public sealed class RabbitMqConnection(IOptions<RabbitMqOptions> options)
+    public sealed class RabbitMqConnection(IOptions<RabbitMqSettings> options)
     {
         private readonly ConnectionFactory connectionFactory = new()
         {
@@ -20,9 +18,9 @@ namespace VaultLab.Infrastructure.Messaging
 
         public async Task<IConnection> GetConnectionAsync(CancellationToken cancellationToken = default)
         {
-            if(connection is not null && connection.IsOpen)
+            if (connection is not null && connection.IsOpen)
                 return connection;
-            
+
             connection = await connectionFactory.CreateConnectionAsync(cancellationToken);
 
             return connection;

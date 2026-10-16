@@ -73,8 +73,7 @@ namespace VaultLab.Domain.Entities
 
         public void MarkAsProcessed()
         {
-            if (Status != DocumentStatus.Uploaded &&
-                Status != DocumentStatus.Processing)
+            if (Status != DocumentStatus.Processing)
             {
                 throw new InvalidOperationException(
                     $"Cannot process a document with status '{Status}'."

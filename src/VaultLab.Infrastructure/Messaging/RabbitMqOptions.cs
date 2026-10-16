@@ -1,14 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
 namespace VaultLab.Infrastructure.Messaging
 {
     public sealed class RabbitMqOptions
     {
-        public string HostName { get; set; } = string.Empty;
-        public string UserName { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+        public int MaxRetries { get; set; }
+        public int RetryDelayMilliseconds { get; set; } = 1000;
+        public RabbitMqExchangesOptions Exchanges { get; set; } = new();
+        public RabbitMqQueuesOptions Queues { get; set; } = new();
+        public RabbitMqRoutingKeys RoutingKeys { get; set; } = new();
     }
 }

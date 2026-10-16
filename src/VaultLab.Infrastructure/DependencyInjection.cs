@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using OpenAI.Chat;
 using OpenAI.Embeddings;
 using VaultLab.Application.Abstractions;
 using VaultLab.Infrastructure.AI;
+using VaultLab.Infrastructure.Configuration;
 using VaultLab.Infrastructure.Documents;
 using VaultLab.Infrastructure.Messaging;
 using VaultLab.Infrastructure.Persistence;
@@ -16,11 +18,23 @@ namespace VaultLab.Infrastructure
 {
     public static class DependencyInjection
     {
-        public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
         {
+
+            var secretPrefix = environment.IsDevelopment()
+                ? "vaultlab/dev"
+                : "vaultlab/prod";
+
+            var databaseSettings = configuration
+                .GetSection($"{secretPrefix}/database")
+                .Get<DatabaseSettings>()
+                ?? throw new InvalidOperationException("Database settings are missing from configuration");
+
+            var connectionString = DatabaseConnectionStringFactory.Create(databaseSettings);
+
             services.AddDbContext<VaultLabDbContext>(options =>
                 options.UseNpgsql(
-                    configuration.GetConnectionString("VaultLab"),
+                    connectionString,
                     npgsqlOptions => npgsqlOptions.UseVector()
                 )
             );
@@ -37,20 +51,29 @@ namespace VaultLab.Infrastructure
             return services;
         }
 
-        public static IServiceCollection AddOpenAI(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddOpenAI(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
         {
-            services.Configure<OpenAIOptions>(configuration.GetSection("OpenAI"));
+
+            var secretPrefix = environment.IsDevelopment()
+                ? "vaultlab/dev"
+                : "vaultlab/prod";
+
+            var openAiSettings = configuration.GetSection($"{secretPrefix}/openai") ??
+                throw new InvalidOperationException("Open AI configuration missing.");
+
+
+            services.Configure<OpenAISettings>(openAiSettings);
 
             services.AddSingleton(serviceProvider =>
             {
-                var options = serviceProvider.GetRequiredService<IOptions<OpenAIOptions>>().Value;
+                var options = serviceProvider.GetRequiredService<IOptions<OpenAISettings>>().Value;
 
                 return new EmbeddingClient(options.EmbeddingModel, options.ApiKey);
             });
 
             services.AddSingleton(serviceProvider =>
             {
-                var options = serviceProvider.GetRequiredService<IOptions<OpenAIOptions>>().Value;
+                var options = serviceProvider.GetRequiredService<IOptions<OpenAISettings>>().Value;
 
                 return new ChatClient(options.ChatModel, options.ApiKey);
             });
@@ -61,12 +84,19 @@ namespace VaultLab.Infrastructure
             return services;
         }
 
-        public static IServiceCollection AddRabbitMq(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddRabbitMq(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
         {
-            services.Configure<RabbitMqOptions>(configuration.GetSection("RabbitMQ"));
-            services.Configure<RabbitMqQueueOptions>(configuration.GetSection("RabbitMqQueues"));
-            services.Configure<RabbitMqExchangeOptions>(configuration.GetSection("RabbitMqExchanges"));
-            services.Configure<RabbitMqRetryOptions>(configuration.GetSection("RabbitMqRetry"));
+            var secretPrefix = environment.IsDevelopment()
+                ? "vaultlab/dev"
+                : "vaultlab/prod";
+
+            var rabbitMqSettings = configuration.GetSection($"{secretPrefix}/rabbitmq")
+                ?? throw new InvalidOperationException("RabbitMQ configuration missing");
+
+            services.Configure<RabbitMqSettings>(rabbitMqSettings);
+
+            //TODO use constant for these
+            services.Configure<RabbitMqOptions>(configuration.GetSection("RabbitMq"));
 
             services.AddSingleton<RabbitMqConnection>();
             services.AddSingleton<RabbitMqInitializer>();

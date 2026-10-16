@@ -6,9 +6,7 @@ namespace VaultLab.Infrastructure.Messaging
 {
     public sealed class RabbitMqInitializer(
         RabbitMqConnection rabbitMqConnection,
-        IOptions<RabbitMqQueueOptions> queueOptions,
-        IOptions<RabbitMqExchangeOptions> exchangeOptions,
-        IOptions<RabbitMqRetryOptions> retryOptions
+        IOptions<RabbitMqOptions> rabbitMqOptions
     )
     {
         public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -17,12 +15,15 @@ namespace VaultLab.Infrastructure.Messaging
 
             await using var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
 
-            var documentExchange = exchangeOptions.Value.Documents;
-            var queues = queueOptions.Value;
+            var exchanges = rabbitMqOptions.Value.Exchanges;
+            var queues = rabbitMqOptions.Value.Queues;
+            var routingKeys = rabbitMqOptions.Value.RoutingKeys;
+
+
 
             // Document Exchange
             await channel.ExchangeDeclareAsync(
-                exchange: documentExchange,
+                exchange: exchanges.Document,
                 type: ExchangeType.Direct,
                 durable: true,
                 autoDelete: false,
@@ -47,9 +48,9 @@ namespace VaultLab.Infrastructure.Messaging
                 autoDelete: false,
                 arguments: new Dictionary<string, object?>
                 {
-                    { "x-message-ttl", retryOptions.Value.RetryDelayMilliseconds },
-                    { "x-dead-letter-exchange", documentExchange },
-                    { "x-dead-letter-routing-key", RabbitMqRoutingKeys.DocumentUploaded }
+                    { "x-message-ttl", rabbitMqOptions.Value.RetryDelayMilliseconds },
+                    { "x-dead-letter-exchange", exchanges.Document },
+                    { "x-dead-letter-routing-key", routingKeys.DocumentUploaded }
                 },
                 cancellationToken: cancellationToken
             );
@@ -67,22 +68,22 @@ namespace VaultLab.Infrastructure.Messaging
 
             await channel.QueueBindAsync(
                 queue: queues.DocumentProcessing,
-                exchange: documentExchange,
-                routingKey: RabbitMqRoutingKeys.DocumentUploaded,
+                exchange: exchanges.Document,
+                routingKey: routingKeys.DocumentUploaded,
                 cancellationToken: cancellationToken
             );
 
             await channel.QueueBindAsync(
                 queue: queues.DocumentProcessingRetry,
-                exchange: documentExchange,
-                routingKey: RabbitMqRoutingKeys.DocumentProcessingRetry,
+                exchange: exchanges.Document,
+                routingKey: routingKeys.DocumentProcessingRetry,
                 cancellationToken: cancellationToken
             );
 
             await channel.QueueBindAsync(
                 queue: queues.DocumentProcessingDeadLetter,
-                exchange: documentExchange,
-                routingKey: RabbitMqRoutingKeys.DocumentProcessingDeadLetter,
+                exchange: exchanges.Document,
+                routingKey: routingKeys.DocumentProcessingDeadLetter,
                 cancellationToken: cancellationToken
             );
         }

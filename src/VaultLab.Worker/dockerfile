@@ -1,0 +1,29 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy solution and project files
+COPY VaultLab.slnx .
+COPY src/VaultLab.Domain/VaultLab.Domain.csproj src/VaultLab.Domain/
+COPY src/VaultLab.Application/VaultLab.Application.csproj src/VaultLab.Application/
+COPY src/VaultLab.Infrastructure/VaultLab.Infrastructure.csproj src/VaultLab.Infrastructure/
+COPY src/VaultLab.Worker/VaultLab.Worker.csproj src/VaultLab.Worker/
+
+# Restore dependencies
+RUN dotnet restore src/VaultLab.Worker/VaultLab.Worker.csproj
+
+# Copy source code
+COPY src/ src/
+
+# Publish application
+RUN dotnet publish src/VaultLab.Worker/VaultLab.Worker.csproj \
+    --configuration Release \
+    --output /app/publish 
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
+WORKDIR /app
+
+COPY --from=build /app/publish .
+
+ENTRYPOINT ["dotnet", "VaultLab.Worker.dll"]

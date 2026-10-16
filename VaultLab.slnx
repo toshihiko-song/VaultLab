@@ -6,4 +6,8 @@
     <Project Path="src/VaultLab.Infrastructure/VaultLab.Infrastructure.csproj" />
     <Project Path="src/VaultLab.Worker/VaultLab.Worker.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/VaultLab.IntegrationTests/VaultLab.IntegrationTests.csproj" />
+    <Project Path="tests/VaultLab.UnitTests/VaultLab.UnitTests.csproj" />
+  </Folder>
 </Solution>
