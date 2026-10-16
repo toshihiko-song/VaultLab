@@ -2,13 +2,21 @@ services:
   api:
     image: ${ECR_REGISTRY}/vaultlab-api:${IMAGE_TAG}
     restart: unless-stopped
-    expose:
-      - "8080"
+    ports:
+      - "8080:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+    networks:
+      - vaultlab
 
   worker:
     image: ${ECR_REGISTRY}/vaultlab-worker:${IMAGE_TAG}
     restart: unless-stopped
     environment:
       DOTNET_ENVIRONMENT: Production
+    networks:
+      - vaultlab
+
+networks:
+  vaultlab:
+    external: true
