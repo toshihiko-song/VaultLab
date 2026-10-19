@@ -1,8 +1,12 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Build.Framework;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using OpenAI.Chat;
 using OpenAI.Embeddings;
 using VaultLab.Application.Abstractions;
@@ -91,8 +95,7 @@ namespace VaultLab.Infrastructure
                 ? "vaultlab/dev"
                 : "vaultlab/prod";
 
-            var rabbitMqSettings = configuration.GetSection($"{secretPrefix}/rabbitmq")
-                ?? throw new InvalidOperationException("RabbitMQ configuration missing");
+            var rabbitMqSettings = configuration.GetSection($"{secretPrefix}/rabbitmq");
 
             services.Configure<RabbitMqSettings>(rabbitMqSettings);
 
@@ -127,21 +130,53 @@ namespace VaultLab.Infrastructure
                 ? "vaultlab/dev"
                 : "vaultlab/prod";
 
-            var authOptions = configuration.GetSection($"{secretPrefix}/googleAuth")
-                ?? throw new InvalidOperationException("Google Auth configuration missing");
+            var authOptions = configuration.GetSection($"{secretPrefix}/googleAuth");
 
 
             services.Configure<GoogleAuthenticationOptions>(authOptions);
 
             services.AddOptions<JwtOptions>()
-                .Bind(configuration.GetSection("jwt"))
+                .Bind(configuration.GetSection($"{secretPrefix}/jwt"))
                 .Validate(options =>
                     !string.IsNullOrWhiteSpace(options.Issuer) &&
                     !string.IsNullOrWhiteSpace(options.Audience) &&
                     !string.IsNullOrWhiteSpace(options.SecretKey) &&
                     options.AccessTokenExpirationMinutes > 0,
                     "JWT configuration is invalid"
+                )
+                .ValidateOnStart();
+
+
+            services
+                .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(
+                    options =>
+                    {
+                        var jwtOptions = configuration
+                            .GetSection($"{secretPrefix}/jwt")
+                            .Get<JwtOptions>()!;
+
+                        options.TokenValidationParameters = new TokenValidationParameters
+                        {
+                            ValidateIssuer = true,
+                            ValidIssuer = jwtOptions.Issuer,
+
+                            ValidateAudience = true,
+                            ValidAudience = jwtOptions.Audience,
+
+                            ValidateIssuerSigningKey = true,
+                            IssuerSigningKey = new SymmetricSecurityKey(
+                                Encoding.UTF8.GetBytes(jwtOptions.SecretKey)
+                            ),
+
+                            ValidateLifetime = true,
+
+                            ClockSkew = TimeSpan.Zero
+                        };
+                    }
                 );
+
+            services.AddAuthorization();
 
             services.AddScoped<IExternalAuthenticationService, GoogleExternalAuthenticationService>();
             services.AddScoped<IUserRepository, UserRepository>();
