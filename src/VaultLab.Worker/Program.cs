@@ -25,8 +25,8 @@ if (!builder.Environment.IsEnvironment("Testing"))
 builder.Services
     .AddPersistence(builder.Configuration, builder.Environment)
     .AddFileStorage()
-    .AddOpenAI(builder.Configuration, builder.Environment)
-    .AddRabbitMq(builder.Configuration, builder.Environment)
+    .AddAIAgent(builder.Configuration, builder.Environment)
+    .AddMessagingQueue(builder.Configuration, builder.Environment)
     .AddDocumentProcessing();
 
 // Worker

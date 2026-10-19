@@ -7,6 +7,7 @@ using OpenAI.Chat;
 using OpenAI.Embeddings;
 using VaultLab.Application.Abstractions;
 using VaultLab.Infrastructure.AI;
+using VaultLab.Infrastructure.Authentication;
 using VaultLab.Infrastructure.Configuration;
 using VaultLab.Infrastructure.Documents;
 using VaultLab.Infrastructure.Messaging;
@@ -51,7 +52,7 @@ namespace VaultLab.Infrastructure
             return services;
         }
 
-        public static IServiceCollection AddOpenAI(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+        public static IServiceCollection AddAIAgent(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
         {
 
             var secretPrefix = environment.IsDevelopment()
@@ -84,7 +85,7 @@ namespace VaultLab.Infrastructure
             return services;
         }
 
-        public static IServiceCollection AddRabbitMq(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+        public static IServiceCollection AddMessagingQueue(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
         {
             var secretPrefix = environment.IsDevelopment()
                 ? "vaultlab/dev"
@@ -119,6 +120,37 @@ namespace VaultLab.Infrastructure
             return services;
         }
 
+
+        public static IServiceCollection AddAuthentication(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+        {
+            var secretPrefix = environment.IsDevelopment()
+                ? "vaultlab/dev"
+                : "vaultlab/prod";
+
+            var authOptions = configuration.GetSection($"{secretPrefix}/googleAuth")
+                ?? throw new InvalidOperationException("Google Auth configuration missing");
+
+
+            services.Configure<GoogleAuthenticationOptions>(authOptions);
+
+            services.AddOptions<JwtOptions>()
+                .Bind(configuration.GetSection("jwt"))
+                .Validate(options =>
+                    !string.IsNullOrWhiteSpace(options.Issuer) &&
+                    !string.IsNullOrWhiteSpace(options.Audience) &&
+                    !string.IsNullOrWhiteSpace(options.SecretKey) &&
+                    options.AccessTokenExpirationMinutes > 0,
+                    "JWT configuration is invalid"
+                );
+
+            services.AddScoped<IExternalAuthenticationService, GoogleExternalAuthenticationService>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IAccessTokenService, JwtAccessTokenService>();
+            services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+
+            return services;
+
+        }
         public static async Task SeedDatabaseAsync(this IServiceProvider serviceProvider)
         {
             using var scope = serviceProvider.CreateScope();

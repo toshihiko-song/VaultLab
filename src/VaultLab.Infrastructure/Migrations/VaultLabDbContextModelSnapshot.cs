@@ -82,10 +82,42 @@ namespace VaultLab.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DocumentId", "ChunkIndex")
-                        .IsUnique();
+                    b.HasIndex("DocumentId");
 
                     b.ToTable("DocumentChunk");
+                });
+
+            modelBuilder.Entity("VaultLab.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("VaultLab.Domain.Entities.User", b =>
@@ -154,6 +186,17 @@ namespace VaultLab.Infrastructure.Migrations
                         .HasForeignKey("DocumentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("VaultLab.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("VaultLab.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("VaultLab.Infrastructure.Persistence.Models.DocumentChunkModel", b =>

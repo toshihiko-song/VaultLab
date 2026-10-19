@@ -13,6 +13,7 @@ namespace VaultLab.Infrastructure.Persistence
         public DbSet<User> Users => Set<User>();
         public DbSet<Document> Documents => Set<Document>();
         public DbSet<DocumentChunkModel> DocumentChunks => Set<DocumentChunkModel>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

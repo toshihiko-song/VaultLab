@@ -20,7 +20,9 @@ if (!builder.Environment.IsEnvironment("Testing"))
         [
             $"vaultlab/{environment}/database",
             $"vaultlab/{environment}/rabbitmq",
-            $"vaultlab/{environment}/openai"
+            $"vaultlab/{environment}/openai",
+            $"vaultlab/{environment}/googleAuth",
+            $"vaultlab/{environment}/jwt",
         ]);
 }
 
@@ -29,8 +31,9 @@ builder.Services
     .AddApplication()
     .AddPersistence(builder.Configuration, builder.Environment)
     .AddFileStorage()
-    .AddOpenAI(builder.Configuration, builder.Environment)
-    .AddRabbitMq(builder.Configuration, builder.Environment);
+    .AddAIAgent(builder.Configuration, builder.Environment)
+    .AddAuthentication(builder.Configuration, builder.Environment)
+    .AddMessagingQueue(builder.Configuration, builder.Environment);
 
 
 // API
